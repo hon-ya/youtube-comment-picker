@@ -1,0 +1,11 @@
+.mdl-grid {
+  max-width: 650px;
+}
+
+.mdl-textfield {
+  width: 100%;
+}
+
+.mdl-textfield textarea {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
