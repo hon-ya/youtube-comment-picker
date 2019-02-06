@@ -24,9 +24,13 @@ const setStorageData = (key, value) => {
 };
 
 chrome.runtime.onInstalled.addListener(async () => {
-  const storageData = await getStorageData("ChannelNameList");
-
-  if (!storageData) {
+  const channelNameList = await getStorageData("ChannelNameList");
+  if (!channelNameList) {
     await setStorageData("ChannelNameList", []);
+  }
+
+  const pikcupModerator = await getStorageData("PikcupModerator");
+  if (!pikcupModerator) {
+    await setStorageData("PikcupModerator", true);
   }
 });

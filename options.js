@@ -24,13 +24,21 @@ const setStorageData = (key, value) => {
 
 const init = async () => {
   const channelNameList = await getStorageData("ChannelNameList");
+  const channelNameListTextArea = document.querySelector("#channel-name-list");
+  channelNameListTextArea.value = channelNameList.join("\n");
 
-  const textArea = document.querySelector("#channel-name-list");
-  textArea.value = channelNameList.join("\n");
+  const pickupModerator = await getStorageData("PickupModerator");
+  const pickupModeratorBlock = document.querySelector("#pickup-moderator-block");
+  if (pickupModerator) {
+    pickupModeratorBlock.MaterialCheckbox.check();
+  } else {
+    pickupModeratorBlock.MaterialCheckbox.uncheck();
+  }
 
   const saveButton = document.querySelector("#save-button");
   saveButton.addEventListener('click', async () => {
-    await setStorageData("ChannelNameList", textArea.value.split('\n'));
+    await setStorageData("ChannelNameList", channelNameListTextArea.value.split('\n'));
+    await setStorageData("PickupModerator", pickupModeratorBlock.classList.contains("is-checked"));
     const data = {
       message: "保存しました。",
       timeout: 1000,

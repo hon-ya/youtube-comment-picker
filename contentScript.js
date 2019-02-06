@@ -16,9 +16,61 @@ const getStorageData = key => {
   });
 };
 
+CommentAccessor = function(node) {
+  this.node = node;
+};
+
+CommentAccessor.prototype.getAuthorName = function() {
+  return this.node.querySelector("#author-name").textContent.trim();
+}
+
+CommentAccessor.prototype.getMessage = function() {
+  let message = "";
+  this.node.querySelector("#message").childNodes.forEach(child => {
+    if (child.nodeName.toLowerCase() === "#text") {
+      message += child.wholeText;
+    }
+    if (child.nodeName.toLowerCase() === "img") {
+      message += `<img src=${child.src} alt=${child.alt} style="width: 24px; height: 24px;"/>`;
+    }
+    if (child.nodeName.toLowerCase() === "a") {
+      message += `<a href=${child.href}>${child.textContent}</a>`;
+    }
+  });
+
+  return message;
+};
+
+CommentAccessor.prototype.getTimestamp = function() {
+  return this.node.querySelector("#timestamp").textContent;
+}
+
+CommentAccessor.prototype.getIconUrl = function() {
+  return this.node.querySelector("#img").attributes["src"].value;
+}
+
+CommentAccessor.prototype.isModerator = function() {
+  const badges = this.node.querySelector("#chat-badges");
+  if (badges === null) {
+    return false;
+  }
+
+  // モデレーターアイコン
+  const moderatorIcon = "M9.64589146,7.05569719 C9.83346524,6.562372 9.93617022,6.02722257 9.93617022,5.46808511 C9.93617022,3.00042984 7.93574038,1 5.46808511,1 C4.90894765,1 4.37379823,1.10270499 3.88047304,1.29027875 L6.95744681,4.36725249 L4.36725255,6.95744681 L1.29027875,3.88047305 C1.10270498,4.37379824 1,4.90894766 1,5.46808511 C1,7.93574038 3.00042984,9.93617022 5.46808511,9.93617022 C6.02722256,9.93617022 6.56237198,9.83346524 7.05569716,9.64589147 L12.4098057,15 L15,12.4098057 L9.64589146,7.05569719 Z";
+
+  const found =Array.prototype.find.call(this.node.querySelectorAll("path"), path => {
+    // バッジアイコンがモデレーターであるかどうか
+    return path.attributes["d"].value === moderatorIcon;
+  });
+
+  return found;
+}
+
 const init = async() => {
   // コメント抽出対象
   const channelNameList = await getStorageData("ChannelNameList");
+  // モデレーターをピックアップするかどうか
+  const pickupModerator = await getStorageData("PickupModerator");
 
   // ピックアップしたコメントを表示するコメント欄を生成する
   const pickupCommentBoxHtmlStr = `
@@ -62,7 +114,7 @@ const init = async() => {
   pickupCommentList.addEventListener('scroll', () => {
     // カーソルが最新のコメントの領域に差し掛かっているかどうかをチェックする
     // 参考: https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollHeight
-    let isCursorBottom = pickupCommentList.scrollTop === (pickupCommentList.scrollHeight - pickupCommentList.clientHeight);
+    const isCursorBottom = pickupCommentList.scrollTop === (pickupCommentList.scrollHeight - pickupCommentList.clientHeight);
 
     if (isCursorBottom) {
       autoScroll = true;
@@ -98,36 +150,18 @@ const init = async() => {
           return;
         }
 
-        // 投稿者名
-        const authorName = node.querySelector("#author-name").textContent;
+        const accessor = new CommentAccessor(node);
+        const authorName = accessor.getAuthorName();
+        const isModerator = accessor.isModerator();
 
-        // 抽出対象であるかどうかをチェック
-        if (channelNameList.indexOf(authorName) >= 0)
+        if (channelNameList.indexOf(authorName) >= 0 || (pickupModerator && isModerator))
         {
-          const getMessage = element => {
-            let message = "";
-
-            element.childNodes.forEach(child => {
-              if (child.nodeName.toLowerCase() === "#text") {
-                message += child.wholeText;
-              }
-              if (child.nodeName.toLowerCase() === "img") {
-                message += `<img src=${child.src} alt=${child.alt} style="width: 24px; height: 24px;"/>`;
-              }
-              if (child.nodeName.toLowerCase() === "a") {
-                message += `<a href=${child.href}>${child.textContent}</a>`;
-              }
-            });
-
-            return message;
-          }
-
           // 残りの要素抽出
           // 絵文字を対処する
-          const message = getMessage(node.querySelector("#message"));
-          const timestamp = node.querySelector("#timestamp").textContent;
-          const iconUrl = node.querySelector("#img").attributes["src"].value;
-          //console.log(`${timestamp} ${authorName} ${message} ${iconUrl}`);
+          const message = accessor.getMessage();
+          const timestamp = accessor.getTimestamp();
+          const iconUrl = accessor.getIconUrl();
+          //console.log(`${timestamp} ${authorName} ${message} ${iconUrl} ${moderator}`);
 
           const newCommentHtmlStr = `
             <div id="ycp-comment" style="display: flex; flex-direction: row; margin: 4px 4px; background-color: transparent; transition: background 1s ease 0s;">
@@ -139,9 +173,9 @@ const init = async() => {
               </div>
             </div>
           `;
-          let newComment = createElementFromHTML(newCommentHtmlStr);
+          const newComment = createElementFromHTML(newCommentHtmlStr);
 
-          let alreadyAdded = Array.prototype.find.call(pickupCommentList.querySelectorAll("#ycp-comment"), child => {
+          const alreadyAdded = Array.prototype.find.call(pickupCommentList.querySelectorAll("#ycp-comment"), child => {
             return child.querySelector("#ycp-comment-timestamp").innerHTML === newComment.querySelector("#ycp-comment-timestamp").innerHTML &&
                 child.querySelector("#ycp-comment-authorname").innerHTML === newComment.querySelector("#ycp-comment-authorname").innerHTML &&
                 child.querySelector("#ycp-comment-message").innerHTML === newComment.querySelector("#ycp-comment-message").innerHTML;
@@ -151,7 +185,7 @@ const init = async() => {
             return;
           }
 
-          let flushAnimation = () => {
+          const flushAnimation = () => {
             if (newComment.style.backgroundColor === "transparent") {
               newComment.style.backgroundColor = "#FF4500";
             } else {
@@ -164,7 +198,7 @@ const init = async() => {
             flushAnimation();
 
             let count = 4;
-            let timer = setInterval(() => {
+            const timer = setInterval(() => {
               flushAnimation();
 
               if (count-- <= 0) {
