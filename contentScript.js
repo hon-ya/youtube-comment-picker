@@ -162,12 +162,12 @@ const init = async() => {
           `;
           const newComment = createElementFromHTML(newCommentHtmlStr);
 
-          const alreadyAdded = Array.prototype.find.call(pickupCommentList.querySelectorAll("#ycp-comment"), child => {
+          const found = Array.prototype.find.call(pickupCommentList.querySelectorAll("#ycp-comment"), child => {
             return child.querySelector("#ycp-comment-timestamp").innerHTML === newComment.querySelector("#ycp-comment-timestamp").innerHTML &&
                 child.querySelector("#ycp-comment-authorname").innerHTML === newComment.querySelector("#ycp-comment-authorname").innerHTML &&
                 child.querySelector("#ycp-comment-message").innerHTML === newComment.querySelector("#ycp-comment-message").innerHTML;
           });
-          if (alreadyAdded) {
+          if (found !== undefined) {
             // 同一のコメントのため、追加しない。
             return;
           }
@@ -178,7 +178,6 @@ const init = async() => {
             } else {
               newComment.style.backgroundColor = "transparent";
             }
-            console.log(newComment.style.backgroundColor + message);
           };
 
           setTimeout(() => {
