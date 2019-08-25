@@ -28,7 +28,7 @@ CommentAccessor.prototype.getMessage = function() {
   let message = "";
   this.node.querySelector("#message").childNodes.forEach(child => {
     if (child.nodeName.toLowerCase() === "#text") {
-      message += child.wholeText;
+      message += child.textContent;
     }
     if (child.nodeName.toLowerCase() === "img") {
       message += `<img src=${child.src} alt=${child.alt} style="width: 24px; height: 24px;"/>`;
